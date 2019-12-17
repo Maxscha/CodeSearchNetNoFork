@@ -153,6 +153,7 @@ class Model(ABC):
         graph = tf.Graph()
         self.__sess = tf.Session(graph=graph, config=config)
 
+        print(log_save_dir)
         # save directory as tensorboard.
         self.__tensorboard_dir = log_save_dir
 
@@ -252,6 +253,8 @@ class Model(ABC):
 
         with tf.variable_scope("code_encoder"):
             language_encoders = []
+            print("test")
+            print(self.__per_code_language_metadata)
             for (language, language_metadata) in sorted(self.__per_code_language_metadata.items(), key=lambda kv: kv[0]):
                 with tf.variable_scope(language):
                     self.__code_encoders[language] = self.__code_encoder_type(label="code",
