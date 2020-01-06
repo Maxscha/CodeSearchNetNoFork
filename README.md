@@ -31,6 +31,19 @@
 
 <!-- /TOC -->
 
+# For Daniel
+
+Follow steps in quickstart till include   python train.py --testrun to verify everything is set up correct. When asked for Wandb choose don`t visualize my results.
+
+Train the Model 3 times. Remember training time on the smallest aws gpu instance was 42 hours.
+
+`python train.py --hypers-override "{\"code_nbow_pool_mode\":\"mean\",\"query_nbow_pool_mode\":\"mean\"}" /home/dev/resources/saved_models/mean`
+
+`python train.py --hypers-override "{\"code_nbow_pool_mode\":\"max\",\"query_nbow_pool_mode\":\"max\"}" /home/dev/resources/saved_models/max`
+
+`python train.py --hypers-override "{\"code_nbow_pool_mode\":\"weighted_mean\",\"query_nbow_pool_mode\":\"weighted_mean\"}" /home/dev/resources/saved_models/weighted_mean`
+
+
 # Quickstart
 
 **If this is your first time reading this, we recommend skipping this section and reading the following sections.** The below commands assume you have [Docker](https://docs.docker.com/get-started/) and [Nvidia-Docker](https://github.com/NVIDIA/nvidia-docker), as well as a GPU that supports [CUDA 9.0](https://developer.nvidia.com/cuda-90-download-archive) or greater. Note: you should only have to run `script/setup` once to download the data.
@@ -44,6 +57,7 @@
   # this will drop you into the shell inside a Docker container
   script/console
   # optional: log in to W&B to see your training metrics,
+
   # track your experiments, and submit your models to the benchmark
   wandb login
 
