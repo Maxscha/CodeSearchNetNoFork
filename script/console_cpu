@@ -1,1 +1,1 @@
-docker run -it --net=host -v /d/Software_Analytics/repo/CodeSearchNet:/home/dev ./docker/docker-cpu.Dockerfile bash
+docker run -it -p 6006:6006 -v $(pwd):/home/dev csnet:cpu bash
