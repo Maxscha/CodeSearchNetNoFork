@@ -17,8 +17,8 @@ from .encoder import Encoder, QueryType
 class SeqEncoder(Encoder):
     @classmethod
     def get_default_hyperparameters(cls) -> Dict[str, Any]:
-        encoder_hypers = { 'token_vocab_size': 10000,
-                           'token_vocab_count_threshold': 10,
+        encoder_hypers = { 'token_vocab_size': 50000,
+                           'token_vocab_count_threshold': 5,
                            'token_embedding_size': 128,
 
                            'use_subtokens': False,
@@ -96,15 +96,17 @@ class SeqEncoder(Encoder):
                                   use_subtokens: bool=False, mark_subtoken_end: bool=False) -> None:
         if use_subtokens:
             data_to_load = cls._to_subtoken_stream(data_to_load, mark_subtoken_end=mark_subtoken_end)
-        raw_metadata['token_counter'].update(data_to_load)
+
+        raw_metadata['token_counter'].update(cls.make_to_ngram(data_to_load))
 
     @classmethod
     def finalise_metadata(cls, encoder_label: str, hyperparameters: Dict[str, Any], raw_metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         final_metadata = super().finalise_metadata(encoder_label, hyperparameters, raw_metadata_list)
         merged_token_counter = Counter()
-        for raw_metadata in raw_metadata_list:
+        for raw_metadata in raw_metadata_list:            
             merged_token_counter += raw_metadata['token_counter']
 
+        print(len(merged_token_counter))
         if hyperparameters['%s_use_bpe' % encoder_label]:
             token_vocabulary = BpeVocabulary(vocab_size=hyperparameters['%s_token_vocab_size' % encoder_label],
                                              pct_bpe=hyperparameters['%s_pct_bpe' % encoder_label]
@@ -115,10 +117,18 @@ class SeqEncoder(Encoder):
                                                             max_size=hyperparameters['%s_token_vocab_size' % encoder_label],
                                                             count_threshold=hyperparameters['%s_token_vocab_count_threshold' % encoder_label])
 
+        print(token_vocabulary)
         final_metadata['token_vocab'] = token_vocabulary
         # Save the most common tokens for use in data augmentation:
         final_metadata['common_tokens'] = merged_token_counter.most_common(50)
         return final_metadata
+
+    @classmethod
+    def make_to_ngram(cls, data):
+        result = []
+        for i in range(len(data) - 1):
+            result.append(data[i] + "_" +data[i+1])
+        return result
 
     @classmethod
     def load_data_from_sample(cls,
@@ -134,6 +144,9 @@ class SeqEncoder(Encoder):
         function-name as the query, and replacing the function name in the code with an out-of-vocab token.
         Sub-tokenizes, converts, and pads both versions, and rejects empty samples.
         """
+
+        data_to_load = cls.make_to_ngram(data_to_load)
+
         # Save the two versions of the code and query:
         data_holder = {QueryType.DOCSTRING.value: data_to_load, QueryType.FUNCTION_NAME.value: None}
         # Skip samples where the function name is very short, because it probably has too little information

@@ -117,7 +117,7 @@ class MrrSearchTester:
             num_uncomputed_representations = sum(1 for i in range(self.__test_batch_size)
                                                  if code_representations[i] is None or query_representations[i] is None)
             if num_uncomputed_representations > 0:
-                print(f'Ignoring {num_uncomputed_representations} samples whose representation could not be computed')
+                print(f'Ignoring {num_uncomputed_representations} samples whose representation could not be computed from {self.__test_batch_size}')
 
             # Design decision: If a representation cannot be computed assign a random representation. This keeps
             # the batch size identical across all models.
