@@ -4,6 +4,9 @@ import tensorflow as tf
 
 from .masked_seq_encoder import MaskedSeqEncoder
 
+BIG_NUMBER = 1e7
+
+
 def pool_sequence_embedding(pool_mode: str,
                             sequence_token_embeddings: tf.Tensor,
                             sequence_lengths: tf.Tensor,
@@ -30,32 +33,39 @@ def pool_sequence_embedding(pool_mode: str,
     print(pool_mode)
     if pool_mode == 'mean':
         seq_token_embeddings_masked = \
-            sequence_token_embeddings * tf.expand_dims(sequence_token_masks, axis=-1)  # B x T x D
-        seq_token_embeddings_sum = tf.reduce_sum(seq_token_embeddings_masked, axis=1)  # B x D
-        sequence_lengths = tf.expand_dims(tf.cast(sequence_lengths, dtype=tf.float32), axis=-1)  # B x 1
+            sequence_token_embeddings * \
+            tf.expand_dims(sequence_token_masks, axis=-1)  # B x T x D
+        seq_token_embeddings_sum = tf.reduce_sum(
+            seq_token_embeddings_masked, axis=1)  # B x D
+        sequence_lengths = tf.expand_dims(
+            tf.cast(sequence_lengths, dtype=tf.float32), axis=-1)  # B x 1
         return seq_token_embeddings_sum / sequence_lengths
     elif pool_mode == 'max':
-        sequence_token_masks = -BIG_NUMBER * (1 - sequence_token_masks)  # B x T
-        sequence_token_masks = tf.expand_dims(sequence_token_masks, axis=-1)  # B x T x 1
+        sequence_token_masks = -BIG_NUMBER * \
+            (1 - sequence_token_masks)  # B x T
+        sequence_token_masks = tf.expand_dims(
+            sequence_token_masks, axis=-1)  # B x T x 1
         return tf.reduce_max(sequence_token_embeddings + sequence_token_masks, axis=1)
     elif pool_mode == 'weighted_mean':
         token_weights = tf.layers.dense(sequence_token_embeddings,
                                         units=1,
                                         activation=tf.sigmoid,
                                         use_bias=False)  # B x T x 1
-        token_weights *= tf.expand_dims(sequence_token_masks, axis=-1)  # B x T x 1
-        seq_embedding_weighted_sum = tf.reduce_sum(sequence_token_embeddings * token_weights, axis=1)  # B x D
-        return seq_embedding_weighted_sum / (tf.reduce_sum(token_weights, axis=1) + 1e-8)  # B x D
+        # B x T x 1
+        token_weights *= tf.expand_dims(sequence_token_masks, axis=-1)
+        seq_embedding_weighted_sum = tf.reduce_sum(
+            sequence_token_embeddings * token_weights, axis=1)  # B x D
+        # B x D
+        return seq_embedding_weighted_sum / (tf.reduce_sum(token_weights, axis=1) + 1e-8)
     else:
         raise ValueError("Unknown sequence pool mode '%s'!" % pool_mode)
-
 
 
 class NBoWEncoder(MaskedSeqEncoder):
     @classmethod
     def get_default_hyperparameters(cls) -> Dict[str, Any]:
-        encoder_hypers = { 'nbow_pool_mode': 'weighted_mean',
-                         }
+        encoder_hypers = {'nbow_pool_mode': 'weighted_mean',
+                          }
         hypers = super().get_default_hyperparameters()
         hypers.update(encoder_hypers)
         return hypers
@@ -91,11 +101,12 @@ class NBoWEncoder(MaskedSeqEncoder):
     def output_representation_size(self):
         return self.get_hyper('token_embedding_size')
 
-    def make_model(self, is_train: bool=False) -> tf.Tensor:
+    def make_model(self, is_train: bool = False) -> tf.Tensor:
         with tf.variable_scope("nbow_encoder"):
             self._make_placeholders()
 
-            seq_tokens_embeddings = self.embedding_layer(self.placeholders['tokens'])
+            seq_tokens_embeddings = self.embedding_layer(
+                self.placeholders['tokens'])
             seq_token_mask = self.placeholders['tokens_mask']
             seq_token_lengths = tf.reduce_sum(seq_token_mask, axis=1)  # B
             return pool_sequence_embedding(self.get_hyper('nbow_pool_mode').lower(),
