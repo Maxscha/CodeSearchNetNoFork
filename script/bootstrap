@@ -5,6 +5,7 @@ cd $(dirname "$0")/..
 
 docker build -f docker/preprocessing.Dockerfile -t preprocessing .
 
+touch wandb.login.netrc
 # try to build container locally.  If fails pull from DockerHub.
 if docker build -f docker/docker-gpu.Dockerfile -t csnet:gpu . 2>/dev/null; then
     echo "built image csnet:gpu locally."

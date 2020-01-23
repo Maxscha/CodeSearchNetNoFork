@@ -1,1 +1,3 @@
+touch wandb.login.netrc
+
 docker build -f docker/docker-cpu.Dockerfile -t csnet:cpu .

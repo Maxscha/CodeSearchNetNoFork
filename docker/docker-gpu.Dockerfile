@@ -72,4 +72,6 @@ EXPOSE 22
 WORKDIR /home/dev/src
 COPY src/docs/THIRD_PARTY_NOTICE.md .
 
+COPY wandb.login.netrc /root/.netrc
+
 CMD bash
