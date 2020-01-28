@@ -52,6 +52,8 @@ import pickle
 import re
 import shutil
 import sys
+import gc
+from os import path
 
 from annoy import AnnoyIndex
 from docopt import docopt
@@ -114,21 +116,30 @@ if __name__ == '__main__':
     
     predictions = []
     for language in ('python', 'go', 'javascript', 'java', 'php', 'ruby'):
+#    for language in ('python', 'go', 'java', 'php', 'ruby'):
+        gc.collect()
         print("Evaluating language: %s" % language)
         definitions = pickle.load(open('../resources/data/{}_dedupe_definitions_v2.pkl'.format(language), 'rb'))
         indexes = [{'code_tokens': d['function_tokens'], 'language': d['language']} for d in tqdm(definitions)]
         code_representations = model.get_code_representations(indexes)
 
         indices = AnnoyIndex(code_representations[0].shape[0], 'angular')
-        for index, vector in tqdm(enumerate(code_representations)):
-            if vector is not None:
-                indices.add_item(index, vector)
-        indices.build(10)
+        f = language + '.ann'
+        if path.exists(f):
+            print("load")
+            indices.load(f)
+        else:
+            for index, vector in tqdm(enumerate(code_representations)):
+                if vector is not None:
+                    indices.add_item(index, vector)
+            indices.build(10)
 
         for query in queries:
             for idx, _ in zip(*query_model(query, model, indices, language)):
                 predictions.append((query, language, definitions[idx]['identifier'], definitions[idx]['url']))
-
+        indices.save(f)
+        indices.unload()
+        del indices
     df = pd.DataFrame(predictions, columns=['query', 'language', 'identifier', 'url'])
     df.to_csv(predictions_csv, index=False)
 
